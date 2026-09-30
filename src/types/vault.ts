@@ -9,20 +9,22 @@ export interface Colorway {
 export interface ProductSpecs {
   weight: string;
   materials: string;
-  releaseDate: string;
+  provenance: string;
   cushioning: string;
 }
 
 export interface Product {
   id: string;
   name: string;
+  styleCode: string;
   brand: string;
-  category: 'Sneakers' | 'Techwear' | 'Outerwear' | 'Accessories';
+  category: 'Footwear' | 'Outerwear' | 'Tailoring' | 'Accessories';
   price: number;
   originalPrice?: number;
   rating: number;
   reviewsCount: number;
   description: string;
+  details: string[];
   colorways: Colorway[];
   sizes: number[];
   inStock: boolean;
@@ -37,3 +39,5 @@ export interface CartItem {
   selectedSize: number;
   quantity: number;
 }
+
+export type Currency = 'USD' | 'EUR' | 'GBP' | 'JPY';

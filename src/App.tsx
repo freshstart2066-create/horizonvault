@@ -9,7 +9,7 @@ import { ToastContainer } from './components/ui/ToastContainer';
 
 export const AppContent: React.FC = () => {
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-zinc-100 flex flex-col justify-between font-sans select-none overflow-x-hidden">
+    <div className="min-h-screen bg-[#0c0d10] text-zinc-100 flex flex-col justify-between font-sans select-none overflow-x-hidden">
       {/* Top Navigation */}
       <Navbar />
 
@@ -22,16 +22,23 @@ export const AppContent: React.FC = () => {
         <ProductGrid />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#111216] border-t border-[#262833] py-12 px-6 sm:px-12 text-center text-xs text-zinc-500 font-mono space-y-3">
-        <div className="flex items-center justify-center gap-6 text-zinc-400">
-          <a href="#showcase" className="hover:text-white">3D Studio</a>
-          <a href="#catalog" className="hover:text-white">Limited Vault Drops</a>
-          <a href="https://github.com/freshstart2066-create/horizonvault" target="_blank" rel="noreferrer" className="hover:text-white">
-            GitHub Repository
-          </a>
+      {/* Luxury Editorial Footer */}
+      <footer className="bg-[#0c0d10] border-t border-[#232530] py-14 px-6 sm:px-12 text-xs text-zinc-500 font-mono space-y-4">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-6 text-zinc-400">
+            <a href="#showcase" className="hover:text-white transition-colors">Studio 3D</a>
+            <a href="#catalog" className="hover:text-white transition-colors">Footwear</a>
+            <a href="#catalog" className="hover:text-white transition-colors">Outerwear</a>
+            <a href="#catalog" className="hover:text-white transition-colors">Tailoring</a>
+            <a href="https://github.com/freshstart2066-create/horizonvault" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+              GitHub
+            </a>
+          </div>
+
+          <p className="text-zinc-500 text-[11px]">
+            © 2026 HORIZON ARCHIVE. Handcrafted in Civitanova Marche, Italy. All rights reserved.
+          </p>
         </div>
-        <p>© 2026 HorizonVault Inc. All rights reserved. 3D Luxury Streetwear & Verified Provenance.</p>
       </footer>
 
       {/* Cart Drawer */}

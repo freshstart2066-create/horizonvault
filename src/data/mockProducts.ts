@@ -3,29 +3,38 @@ import { Product } from '../types/vault';
 export const PRODUCTS: Product[] = [
   {
     id: 'prod-1',
-    name: 'Phantom Velocity 3000',
-    brand: 'HORIZON LABS',
-    category: 'Sneakers',
-    price: 380,
-    originalPrice: 450,
+    name: 'Monolith 01 Low-Top Runner',
+    styleCode: 'HZ-M01-FW26',
+    brand: 'HORIZON ARCHIVE',
+    category: 'Footwear',
+    price: 395,
+    originalPrice: 460,
     rating: 4.9,
-    reviewsCount: 342,
-    badge: 'LIMITED DROP ⚡',
-    description: 'Engineered with carbon-fiber energy propulsion plates and breathable aerospace ballistic mesh. Features responsive quantum-cushioning for effortless zero-gravity street velocity.',
+    reviewsCount: 148,
+    badge: 'COLLECTION FW26',
+    description: 'Handcrafted in Civitanova Marche, Italy. Constructed from full-grain Tuscan calfskin with a padded collar, tonal cotton laces, and a custom dual-density Vibram® rubber cupsole engineered for all-day comfort.',
+    details: [
+      'Full-grain Italian calfskin upper and lining',
+      'Custom Vibram® Megagrip lugged rubber outsole',
+      'Removable molded OrthoLite® ergonomic footbed',
+      'Blind embossed gold-foil style code on lateral heel',
+      'Includes custom dust bag and spare tonal waxed laces',
+      'Made in Italy'
+    ],
     inStock: true,
     specs: {
-      weight: '290g (Size 10)',
-      materials: 'Aerospace Mesh, Carbon-Fiber Plate, TPU Outsole',
-      releaseDate: 'Fall 2026',
-      cushioning: 'Quantum Air Nitrogen Pods'
+      weight: '385g (EU 42 / US 9)',
+      materials: '100% Full-Grain Calfskin, Vibram® Rubber',
+      provenance: 'Civitanova Marche, Italy',
+      cushioning: 'Dual-Density Molded OrthoLite®'
     },
     sizes: [7, 8, 8.5, 9, 9.5, 10, 10.5, 11, 12],
     colorways: [
       {
-        id: 'cw-cyber-cyan',
-        name: 'Cyberpunk Neon Cyan',
-        hex: '#00f0ff',
-        accentHex: '#ff0055',
+        id: 'cw-bone-white',
+        name: 'Bone / Chalk White',
+        hex: '#f4f1ea',
+        accentHex: '#18181b',
         angleImages: [
           'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000&auto=format&fit=crop&q=80',
           'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=1000&auto=format&fit=crop&q=80',
@@ -34,8 +43,8 @@ export const PRODUCTS: Product[] = [
         ]
       },
       {
-        id: 'cw-triple-black',
-        name: 'Obsidian Stealth Black',
+        id: 'cw-stealth-obsidian',
+        name: 'Obsidian Black / Charcoal',
         hex: '#18181b',
         accentHex: '#71717a',
         angleImages: [
@@ -46,10 +55,10 @@ export const PRODUCTS: Product[] = [
         ]
       },
       {
-        id: 'cw-platinum-ice',
-        name: 'Platinum Ice & Gold',
-        hex: '#e2e8f0',
-        accentHex: '#d4af37',
+        id: 'cw-sage-olive',
+        name: 'Sage / Muted Olive Gum',
+        hex: '#4a5548',
+        accentHex: '#d4a373',
         angleImages: [
           'https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=1000&auto=format&fit=crop&q=80',
           'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=1000&auto=format&fit=crop&q=80',
@@ -61,28 +70,37 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'prod-2',
-    name: 'Neo-Matrix High Top',
-    brand: 'CYBERPUNK STUDIO',
-    category: 'Sneakers',
-    price: 420,
+    name: 'Aerostructure High-Top Trail',
+    styleCode: 'HZ-AT02-FW26',
+    brand: 'HORIZON TECHNICAL',
+    category: 'Footwear',
+    price: 440,
     rating: 4.8,
-    reviewsCount: 198,
-    badge: 'BESTSELLER 🔥',
-    description: 'Futuristic high-top silhouette built with magnetic Fidlock closure buckles and waterproof Gore-Tex membranous shell.',
+    reviewsCount: 92,
+    badge: 'NEW ARRIVAL',
+    description: 'Technical weather-resistant high-top silhouette built with a 3-layer waterproof GORE-TEX® lining, Fidlock® magnetic mechanical closure, and aggressive deep-lug Vibram® traction sole.',
+    details: [
+      'GORE-TEX® waterproof & breathable membrane',
+      'Magnetic Fidlock® buckle fastening system',
+      'Reflective 3M Scotchlite™ lateral piping',
+      'Vibram® Arctic Grip cold-weather compound',
+      'Reinforced TPU mudguard and toe cap',
+      'Engineered in Munich, Germany'
+    ],
     inStock: true,
     specs: {
-      weight: '340g',
-      materials: 'Gore-Tex, Magnetic Fidlock, Vibram Lugged Sole',
-      releaseDate: 'Summer 2026',
-      cushioning: 'Dual Density EVA React Foam'
+      weight: '440g (EU 42)',
+      materials: 'GORE-TEX®, Schoeller Cordura, Vibram® Outsole',
+      provenance: 'Munich, Germany',
+      cushioning: 'High-Rebound EVA React Cushioning'
     },
     sizes: [8, 9, 10, 11, 12],
     colorways: [
       {
-        id: 'cw-red-black',
-        name: 'Chicago Cyber Red',
-        hex: '#dc2626',
-        accentHex: '#000000',
+        id: 'cw-charcoal-crimson',
+        name: 'Charcoal / Crimson Accent',
+        hex: '#27272a',
+        accentHex: '#dc2626',
         angleImages: [
           'https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?w=1000&auto=format&fit=crop&q=80',
           'https://images.unsplash.com/photo-1512374382149-233c42b661ac?w=1000&auto=format&fit=crop&q=80'
@@ -92,29 +110,38 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'prod-3',
-    name: 'Exo-Shell Modular Parka',
-    brand: 'ACRONYM TECH',
+    name: 'Double-Faced Wool Melton Coat',
+    styleCode: 'HZ-OC03-W26',
+    brand: 'HORIZON ATELIER',
     category: 'Outerwear',
-    price: 650,
-    originalPrice: 780,
+    price: 780,
+    originalPrice: 920,
     rating: 5.0,
-    reviewsCount: 86,
-    badge: 'WEATHERPROOF 🌧️',
-    description: '3-layer modular storm jacket featuring magnetic sling harness, thermal heat-reflective lining, and detachable cargo pouches.',
+    reviewsCount: 47,
+    badge: 'LIMITED EDITION',
+    description: 'Minimalist double-breasted overcoat tailored from heavy double-faced Italian virgin wool. Features natural horn buttons, structured drop shoulders, and cupro satin sleeve lining.',
+    details: [
+      '100% Virgin Melton Wool (680 GSM)',
+      'Natural polished horn buttons',
+      '100% Bemberg Cupro sleeve lining',
+      'Interior welt pockets with button closure',
+      'Deep back vent with button tab',
+      'Hand-finished in Biella, Italy'
+    ],
     inStock: true,
     specs: {
-      weight: '620g',
-      materials: '3L Schoeller Dryskin, YKK Aquaguard Zips',
-      releaseDate: 'Winter 2026',
+      weight: '1,250g (Size 50)',
+      materials: '100% Italian Virgin Wool, Cupro Lining',
+      provenance: 'Biella, Italy',
       cushioning: 'N/A'
     },
     sizes: [38, 40, 42, 44],
     colorways: [
       {
-        id: 'cw-matte-olive',
-        name: 'Tactical Matte Olive',
-        hex: '#3f4c38',
-        accentHex: '#000000',
+        id: 'cw-dark-olive',
+        name: 'Deep Forest Olive',
+        hex: '#2b3327',
+        accentHex: '#18181b',
         angleImages: [
           'https://images.unsplash.com/photo-1544441893-675973e31985?w=1000&auto=format&fit=crop&q=80'
         ]
@@ -123,26 +150,34 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'prod-4',
-    name: 'Valkyrie Cargo Techwear Pant',
-    brand: 'HORIZON LABS',
-    category: 'Techwear',
-    price: 240,
-    rating: 4.7,
-    reviewsCount: 112,
-    description: 'Articulated ergonomic streetwear trousers with 8 waterproof zip pockets and adjustable tapered ankle cinch cords.',
+    name: 'Pleated Japanese Twill Trouser',
+    styleCode: 'HZ-TR04-FW26',
+    brand: 'HORIZON STUDIO',
+    category: 'Tailoring',
+    price: 290,
+    rating: 4.8,
+    reviewsCount: 68,
+    description: 'Relaxed wide-leg trousers woven in Okayama, Japan from high-density organic cotton twill. Features double forward pleats, extended tab waistband, and Corozo nut buttons.',
+    details: [
+      '100% Organic Japanese Cotton Twill (340 GSM)',
+      'Double forward pleats with wide tapered silhouette',
+      'Extended waistband with concealed hook-and-bar closure',
+      'Natural Corozo nut buttons',
+      'Woven in Okayama, Japan'
+    ],
     inStock: true,
     specs: {
-      weight: '410g',
-      materials: 'Stretch Ripstop Cordura, Teflon DWR',
-      releaseDate: '2026',
+      weight: '490g (Size 32)',
+      materials: '100% Japanese Organic Cotton Twill',
+      provenance: 'Okayama, Japan',
       cushioning: 'N/A'
     },
     sizes: [28, 30, 32, 34, 36],
     colorways: [
       {
-        id: 'cw-pitch-black',
-        name: 'Pitch Black',
-        hex: '#111827',
+        id: 'cw-midnight-navy',
+        name: 'Midnight Navy',
+        hex: '#0f172a',
         accentHex: '#3b82f6',
         angleImages: [
           'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=1000&auto=format&fit=crop&q=80'

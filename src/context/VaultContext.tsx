@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, Colorway, CartItem } from '../types/vault';
+import { Product, Colorway, CartItem, Currency } from '../types/vault';
 import { PRODUCTS } from '../data/mockProducts';
 
 interface ToastItem {
@@ -7,6 +7,13 @@ interface ToastItem {
   message: string;
   type?: 'success' | 'info' | 'warn';
 }
+
+const CURRENCY_RATES: Record<Currency, { symbol: string; rate: number }> = {
+  USD: { symbol: '$', rate: 1.0 },
+  EUR: { symbol: '€', rate: 0.92 },
+  GBP: { symbol: '£', rate: 0.79 },
+  JPY: { symbol: '¥', rate: 152.0 }
+};
 
 interface VaultContextType {
   products: Product[];
@@ -22,6 +29,11 @@ interface VaultContextType {
   isAutoRotating: boolean;
   setIsAutoRotating: (auto: boolean) => void;
   
+  // Currency System
+  currency: Currency;
+  setCurrency: (c: Currency) => void;
+  formatPrice: (amountInUSD: number) => string;
+  
   // Cart
   cart: CartItem[];
   isCartOpen: boolean;
@@ -35,15 +47,19 @@ interface VaultContextType {
   discountPercent: number;
   applyPromoCode: (code: string) => boolean;
   
-  // Accounting
+  // Accounting in USD
   subtotal: number;
   discountAmount: number;
   total: number;
   
-  // Checkout Order Complete
+  // Size Guide Modal
+  isSizeGuideOpen: boolean;
+  setIsSizeGuideOpen: (open: boolean) => void;
+  
+  // Checkout
   isOrderSuccessModalOpen: boolean;
   setIsOrderSuccessModalOpen: (open: boolean) => void;
-  lastOrderDetails: { orderId: string; total: number; itemsCount: number } | null;
+  lastOrderDetails: { orderId: string; totalFormatted: string; itemsCount: number } | null;
   checkout: () => void;
   
   toasts: ToastItem[];
@@ -58,10 +74,12 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeColorway, setActiveColorway] = useState<Colorway>(PRODUCTS[0].colorways[0]);
   const [activeAngleIndex, setActiveAngleIndex] = useState<number>(0);
   const [isAutoRotating, setIsAutoRotating] = useState<boolean>(false);
+  const [currency, setCurrency] = useState<Currency>('USD');
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('horizonvault_cart');
+      const saved = localStorage.getItem('horizon_bag');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -73,7 +91,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [discountPercent, setDiscountPercent] = useState(0);
 
   const [isOrderSuccessModalOpen, setIsOrderSuccessModalOpen] = useState(false);
-  const [lastOrderDetails, setLastOrderDetails] = useState<{ orderId: string; total: number; itemsCount: number } | null>(null);
+  const [lastOrderDetails, setLastOrderDetails] = useState<{ orderId: string; totalFormatted: string; itemsCount: number } | null>(null);
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -82,7 +100,16 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3500);
+    }, 3200);
+  };
+
+  const formatPrice = (amountInUSD: number): string => {
+    const config = CURRENCY_RATES[currency] || CURRENCY_RATES.USD;
+    const converted = amountInUSD * config.rate;
+    if (currency === 'JPY') {
+      return `${config.symbol}${Math.round(converted).toLocaleString()}`;
+    }
+    return `${config.symbol}${converted.toFixed(2)}`;
   };
 
   // Sync Colorway on Product Change
@@ -97,13 +124,13 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const count = activeColorway.angleImages.length;
     const interval = setInterval(() => {
       setActiveAngleIndex(prev => (prev + 1) % count);
-    }, 1800);
+    }, 2000);
     return () => clearInterval(interval);
   }, [isAutoRotating, activeColorway]);
 
   // LocalStorage Cart Sync
   useEffect(() => {
-    localStorage.setItem('horizonvault_cart', JSON.stringify(cart));
+    localStorage.setItem('horizon_bag', JSON.stringify(cart));
   }, [cart]);
 
   const addToCart = (product: Product, colorway: Colorway, size: number) => {
@@ -116,13 +143,13 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return [...prev, { id: itemId, product, selectedColorway: colorway, selectedSize: size, quantity: 1 }];
     });
 
-    showToast(`Added ${product.name} (${colorway.name}, Size ${size}) to Cart!`, 'success');
+    showToast(`Added ${product.name} (EU ${size}) to Shopping Bag`, 'success');
     setIsCartOpen(true);
   };
 
   const removeFromCart = (cartItemId: string) => {
     setCart(prev => prev.filter(item => item.id !== cartItemId));
-    showToast('Item removed from cart', 'warn');
+    showToast('Item removed from shopping bag', 'info');
   };
 
   const updateQuantity = (cartItemId: string, delta: number) => {
@@ -137,13 +164,13 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const applyPromoCode = (code: string): boolean => {
     const clean = code.trim().toUpperCase();
-    if (clean === 'APEX2026' || clean === 'HORIZON20') {
+    if (clean === 'HORIZON15' || clean === 'VIP15' || clean === 'APEX2026') {
       setPromoCode(clean);
-      setDiscountPercent(20);
-      showToast('🎉 Promo code applied: 20% OFF your entire order!', 'success');
+      setDiscountPercent(15);
+      showToast('Promotional voucher applied: 15% VIP discount', 'success');
       return true;
     } else {
-      showToast('❌ Invalid promo code. Try APEX2026', 'warn');
+      showToast('Invalid promotional code. Try HORIZON15', 'warn');
       return false;
     }
   };
@@ -159,7 +186,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setLastOrderDetails({
       orderId,
-      total,
+      totalFormatted: formatPrice(total),
       itemsCount
     });
 
@@ -180,6 +207,9 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setActiveAngleIndex,
         isAutoRotating,
         setIsAutoRotating,
+        currency,
+        setCurrency,
+        formatPrice,
         cart,
         isCartOpen,
         setIsCartOpen,
@@ -192,6 +222,8 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         subtotal,
         discountAmount,
         total,
+        isSizeGuideOpen,
+        setIsSizeGuideOpen,
         isOrderSuccessModalOpen,
         setIsOrderSuccessModalOpen,
         lastOrderDetails,
