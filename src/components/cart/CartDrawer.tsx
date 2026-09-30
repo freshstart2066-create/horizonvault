@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useVault } from '../../context/VaultContext';
+import { soundFx } from '../../utils/audio';
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Tag, ShieldCheck } from 'lucide-react';
 
 export const CartDrawer: React.FC = () => {
@@ -25,7 +26,31 @@ export const CartDrawer: React.FC = () => {
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputCode.trim()) return;
-    applyPromoCode(inputCode);
+    const ok = applyPromoCode(inputCode);
+    if (ok) {
+      soundFx.playCelebrationFanfare();
+    } else {
+      soundFx.playClick(400);
+    }
+  };
+
+  const handleClose = () => {
+    setIsCartOpen(false);
+    soundFx.playClick();
+  };
+
+  const handleUpdateQty = (id: string, delta: number) => {
+    updateQuantity(id, delta);
+    soundFx.playClick(delta > 0 ? 800 : 600);
+  };
+
+  const handleRemove = (id: string) => {
+    removeFromCart(id);
+    soundFx.playClick(450);
+  };
+
+  const handleCheckout = () => {
+    checkout();
   };
 
   return (
@@ -46,7 +71,7 @@ export const CartDrawer: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setIsCartOpen(false)}
+            onClick={handleClose}
             className="text-zinc-400 hover:text-white cursor-pointer"
           >
             <X className="w-6 h-6" />
@@ -83,7 +108,7 @@ export const CartDrawer: React.FC = () => {
                     <div className="flex items-center bg-[#0a0a0c] border border-[#262833] rounded-lg">
                       <button
                         type="button"
-                        onClick={() => updateQuantity(item.id, -1)}
+                        onClick={() => handleUpdateQty(item.id, -1)}
                         className="px-2 py-1 text-zinc-400 hover:text-white cursor-pointer"
                       >
                         <Minus className="w-3 h-3" />
@@ -91,7 +116,7 @@ export const CartDrawer: React.FC = () => {
                       <span className="px-2 text-xs font-mono font-bold">{item.quantity}</span>
                       <button
                         type="button"
-                        onClick={() => updateQuantity(item.id, 1)}
+                        onClick={() => handleUpdateQty(item.id, 1)}
                         className="px-2 py-1 text-zinc-400 hover:text-white cursor-pointer"
                       >
                         <Plus className="w-3 h-3" />
@@ -100,7 +125,7 @@ export const CartDrawer: React.FC = () => {
 
                     <button
                       type="button"
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => handleRemove(item.id)}
                       className="text-zinc-500 hover:text-red-400 p-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -166,8 +191,8 @@ export const CartDrawer: React.FC = () => {
             {/* Checkout Button */}
             <button
               type="button"
-              onClick={checkout}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#00f0ff] to-[#00a8ff] hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-cyan-500/25 transition-all cursor-pointer font-display"
+              onClick={handleCheckout}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#00f0ff] to-[#00a8ff] hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-cyan-500/25 transition-all hover:scale-102 cursor-pointer font-display"
             >
               <span>Instant Checkout • ${total.toFixed(2)}</span>
               <ArrowRight className="w-4 h-4" />

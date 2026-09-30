@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useVault } from '../../context/VaultContext';
-import { Product } from '../../types/vault';
+import { soundFx } from '../../utils/audio';
 import { Eye, ShoppingBag, Sparkles, Star } from 'lucide-react';
 
 export const ProductGrid: React.FC = () => {
@@ -13,16 +13,37 @@ export const ProductGrid: React.FC = () => {
     ? products
     : products.filter(p => p.category === activeCategory);
 
+  const handleCategoryChange = (cat: string) => {
+    setActiveCategory(cat);
+    soundFx.playClick(750);
+  };
+
+  const handleInspect = (product: typeof products[0]) => {
+    setActiveProduct(product);
+    soundFx.playLaserChirp();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleQuickAdd = (product: typeof products[0]) => {
+    addToCart(product, product.colorways[0], product.sizes[0] || 9);
+    soundFx.playAddToCartChime();
+  };
+
   return (
     <section id="catalog" className="py-16 px-4 sm:px-12 max-w-7xl mx-auto select-none border-t border-[#262833]/60">
       {/* Catalog Header & Category Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-8 gap-4">
         <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-mono font-bold text-[#00f0ff] uppercase tracking-wider">
+              CURATED ARCHIVE
+            </span>
+          </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white font-display">
-            Explore Curated Vault Drops
+            Explore Limited Vault Drops
           </h2>
           <p className="text-xs text-zinc-400 font-mono mt-1">
-            Handcrafted luxury silhouettes with verified provenance
+            Handcrafted luxury silhouettes with verified NFC provenance
           </p>
         </div>
 
@@ -32,10 +53,10 @@ export const ProductGrid: React.FC = () => {
             <button
               key={cat}
               type="button"
-              onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              onClick={() => handleCategoryChange(cat)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono ${
                 activeCategory === cat
-                  ? 'bg-white text-black shadow-lg scale-105 font-display'
+                  ? 'bg-white text-black shadow-lg scale-105 font-black'
                   : 'bg-[#17181f] text-zinc-400 hover:text-white border border-[#262833]'
               }`}
             >
@@ -73,11 +94,8 @@ export const ProductGrid: React.FC = () => {
                 {/* Quick 3D View Button Overlay */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveProduct(product);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-xs font-bold text-white cursor-pointer"
+                  onClick={() => handleInspect(product)}
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-xs font-bold text-white cursor-pointer font-display"
                 >
                   <Eye className="w-4 h-4 text-[#00f0ff]" />
                   <span>Inspect in 3D</span>
@@ -87,7 +105,7 @@ export const ProductGrid: React.FC = () => {
               {/* Product Info */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
-                  <span>{product.brand}</span>
+                  <span className="text-[#00f0ff]">{product.brand}</span>
                   <div className="flex items-center gap-1 text-amber-400">
                     <Star className="w-3 h-3 fill-current" />
                     <span>{product.rating}</span>
@@ -112,8 +130,8 @@ export const ProductGrid: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => addToCart(product, defaultColorway, product.sizes[0] || 9)}
-                    className="p-2.5 rounded-xl bg-[#17181f] hover:bg-[#00f0ff] hover:text-black text-zinc-300 border border-[#262833] transition-all cursor-pointer"
+                    onClick={() => handleQuickAdd(product)}
+                    className="p-2.5 rounded-xl bg-[#17181f] hover:bg-[#00f0ff] hover:text-black text-zinc-300 border border-[#262833] transition-all cursor-pointer shadow-md hover:scale-110"
                     title="Quick Add to Cart"
                   >
                     <ShoppingBag className="w-4 h-4" />
