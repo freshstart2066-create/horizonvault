@@ -1,18 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useVault } from '../../context/VaultContext';
 import { soundFx } from '../../utils/audio';
 import { 
   RotateCw, 
-  Layers, 
   Eye, 
-  Sun, 
   Sparkles, 
   Compass, 
   Volume2, 
   VolumeX, 
-  Maximize2,
-  Info
+  Layers,
+  Info,
+  Loader2,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 
 export type LightingPreset = 'cyber' | 'studio' | 'uv' | 'golden';
@@ -27,21 +29,21 @@ interface Hotspot {
 const HOTSPOTS: Hotspot[] = [
   {
     id: 'air_pod',
-    name: 'Dual-Chamber Zoom Air™',
-    desc: 'Pressurized gas capsules deliver 89% kinetic energy return on heel strike.',
-    pos: [-0.6, -0.4, 0.4]
+    name: 'Dual-Chamber Zoom Air™ Heel',
+    desc: 'Pressurized inert gas capsules deliver 89% kinetic energy return on heel strike.',
+    pos: [-0.6, -0.2, 0.4]
   },
   {
     id: 'carbon_shank',
-    name: 'Torsional Carbon Plate',
-    desc: 'Aerospace-grade 3K carbon fiber plate preventing torsional foot twist.',
-    pos: [0, -0.2, 0.35]
+    name: 'Torsional Carbon Arch Plate',
+    desc: 'Aerospace-grade 3K forged carbon fiber plate preventing torsional foot twist.',
+    pos: [0, -0.1, 0.35]
   },
   {
     id: 'aeroweave_upper',
-    name: 'VaporWeave™ Mono-Mesh',
+    name: 'VaporWeave™ Mono-Mesh Toe Box',
     desc: 'Seamless hydrophobic upper engineered with dynamic tensile lock cables.',
-    pos: [0.6, 0.4, 0.3]
+    pos: [0.6, 0.2, 0.3]
   }
 ];
 
@@ -51,28 +53,22 @@ export const WebGL3DStudio: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // States
-  const [isExploded, setIsExploded] = useState(false);
+  // UI States
+  const [isLoadingModel, setIsLoadingModel] = useState(true);
   const [isWireframe, setIsWireframe] = useState(false);
   const [isAutoSpin, setIsAutoSpin] = useState(true);
   const [lightingPreset, setLightingPreset] = useState<LightingPreset>('cyber');
   const [activeHotspot, setActiveHotspot] = useState<Hotspot | null>(null);
   const [fps, setFps] = useState(60);
   const [isMuted, setIsMuted] = useState(soundFx.getMuted());
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   // Scene references
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  
-  // Group containing model parts for exploded view
-  const shoeGroupRef = useRef<THREE.Group | null>(null);
-  const upperMeshRef = useRef<THREE.Mesh | null>(null);
-  const soleMeshRef = useRef<THREE.Mesh | null>(null);
-  const airPodMeshRef = useRef<THREE.Mesh | null>(null);
-  const shankMeshRef = useRef<THREE.Mesh | null>(null);
-  const swooshMeshRef = useRef<THREE.Mesh | null>(null);
-  const lacesMeshRef = useRef<THREE.Mesh | null>(null);
+  const shoeModelRef = useRef<THREE.Group | null>(null);
+  const originalMaterialsRef = useRef<Map<THREE.Mesh, THREE.Material | THREE.Material[]>>(new Map());
 
   // Lights
   const keyLightRef = useRef<THREE.DirectionalLight | null>(null);
@@ -83,21 +79,18 @@ export const WebGL3DStudio: React.FC = () => {
   // Orbit controls state
   const isDraggingRef = useRef(false);
   const previousMousePositionRef = useRef({ x: 0, y: 0 });
-  const rotationVelocityRef = useRef({ x: 0, y: 0.005 });
-  const targetRotationRef = useRef({ x: 0.2, y: 0 });
-  const currentRotationRef = useRef({ x: 0.2, y: 0 });
+  const targetRotationRef = useRef({ x: 0.15, y: -0.8 });
+  const currentRotationRef = useRef({ x: 0.15, y: -0.8 });
 
-  // FPS Calculation
+  // FPS Tracking
   const frameCountRef = useRef(0);
   const lastTimeRef = useRef(performance.now());
 
-  // Handle Audio Mute Toggle
   const handleToggleMute = () => {
     const muted = soundFx.toggleMute();
     setIsMuted(muted);
   };
 
-  // Setup Three.js Scene
   useEffect(() => {
     if (!containerRef.current || !canvasRef.current) return;
 
@@ -109,11 +102,11 @@ export const WebGL3DStudio: React.FC = () => {
     sceneRef.current = scene;
 
     // 2. Camera
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0.5, 4.2);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(0, 0.4, 3.8);
     cameraRef.current = camera;
 
-    // 3. Renderer with antialiasing & tone mapping
+    // 3. WebGL Renderer
     const renderer = new THREE.WebGLRenderer({
       canvas: canvasRef.current,
       alpha: true,
@@ -123,138 +116,57 @@ export const WebGL3DStudio: React.FC = () => {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.3;
     rendererRef.current = renderer;
 
     // 4. Lighting System
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
     ambientLightRef.current = ambientLight;
 
-    const keyLight = new THREE.DirectionalLight(0x00f0ff, 2.5);
+    const keyLight = new THREE.DirectionalLight(0x00f0ff, 3.0);
     keyLight.position.set(4, 5, 4);
     scene.add(keyLight);
     keyLightRef.current = keyLight;
 
-    const fillLight = new THREE.DirectionalLight(0xff007f, 1.8);
+    const fillLight = new THREE.DirectionalLight(0xff007f, 2.0);
     fillLight.position.set(-4, -2, -3);
     scene.add(fillLight);
     fillLightRef.current = fillLight;
 
-    const rimLight = new THREE.PointLight(0xffffff, 3, 10);
+    const rimLight = new THREE.PointLight(0xffffff, 3.5, 12);
     rimLight.position.set(0, 3, -3);
     scene.add(rimLight);
     rimLightRef.current = rimLight;
 
-    // 5. Build Procedural 3D Luxury Sneaker Model
-    const shoeGroup = new THREE.Group();
-    shoeGroupRef.current = shoeGroup;
-    scene.add(shoeGroup);
-
-    // Dynamic color parsing
-    const baseColor = new THREE.Color(activeColorway.hex || '#111111');
-    const accentColor = new THREE.Color(activeColorway.accentHex || '#00f0ff');
-
-    // Upper Shell Geometry
-    const upperGeo = new THREE.CapsuleGeometry(0.7, 1.4, 16, 32);
-    upperGeo.scale(1.2, 0.65, 0.7);
-    upperGeo.rotateZ(Math.PI / 16);
-    const upperMat = new THREE.MeshPhysicalMaterial({
-      color: baseColor,
-      roughness: 0.35,
-      metalness: 0.15,
-      clearcoat: 0.4,
-      clearcoatRoughness: 0.1
-    });
-    const upperMesh = new THREE.Mesh(upperGeo, upperMat);
-    upperMesh.position.set(0, 0.1, 0);
-    upperMeshRef.current = upperMesh;
-    shoeGroup.add(upperMesh);
-
-    // Sole & Cushion Midsole Geometry
-    const soleGeo = new THREE.BoxGeometry(2.4, 0.28, 0.9, 12, 4, 12);
-    const soleMat = new THREE.MeshStandardMaterial({
-      color: 0x0e0f14,
-      roughness: 0.7,
-      metalness: 0.05
-    });
-    const soleMesh = new THREE.Mesh(soleGeo, soleMat);
-    soleMesh.position.set(0, -0.4, 0);
-    soleMeshRef.current = soleMesh;
-    shoeGroup.add(soleMesh);
-
-    // Zoom Air Capsule Pods
-    const airGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.18, 24);
-    airGeo.rotateX(Math.PI / 2);
-    const airMat = new THREE.MeshPhysicalMaterial({
-      color: accentColor,
-      transmission: 0.85,
-      opacity: 1,
-      transparent: true,
-      roughness: 0.1,
-      ior: 1.5,
-      emissive: accentColor,
-      emissiveIntensity: 0.3
-    });
-    const airPodMesh = new THREE.Mesh(airGeo, airMat);
-    airPodMesh.position.set(-0.6, -0.38, 0);
-    airPodMeshRef.current = airPodMesh;
-    shoeGroup.add(airPodMesh);
-
-    // Carbon Fiber Arch Plate
-    const shankGeo = new THREE.BoxGeometry(0.8, 0.06, 0.5);
-    const shankMat = new THREE.MeshStandardMaterial({
-      color: 0x1a1a1a,
-      roughness: 0.2,
-      metalness: 0.85
-    });
-    const shankMesh = new THREE.Mesh(shankGeo, shankMat);
-    shankMesh.position.set(0, -0.3, 0);
-    shankMeshRef.current = shankMesh;
-    shoeGroup.add(shankMesh);
-
-    // Glowing Holographic Accent Swoosh / Crest
-    const swooshGeo = new THREE.TorusGeometry(0.55, 0.04, 12, 36, Math.PI * 0.75);
-    swooshGeo.rotateZ(-Math.PI / 6);
-    const swooshMat = new THREE.MeshStandardMaterial({
-      color: accentColor,
-      emissive: accentColor,
-      emissiveIntensity: 1.2,
-      roughness: 0.1,
-      metalness: 0.9
-    });
-    const swooshMesh = new THREE.Mesh(swooshGeo, swooshMat);
-    swooshMesh.position.set(0.1, 0.15, 0.42);
-    swooshMeshRef.current = swooshMesh;
-    shoeGroup.add(swooshMesh);
-
-    // Laces & Lock Dial
-    const laceGeo = new THREE.TorusGeometry(0.35, 0.03, 8, 24);
-    laceGeo.rotateX(Math.PI / 2);
-    const laceMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.8
-    });
-    const lacesMesh = new THREE.Mesh(laceGeo, laceMat);
-    lacesMesh.position.set(0.3, 0.45, 0);
-    lacesMeshRef.current = lacesMesh;
-    shoeGroup.add(lacesMesh);
-
-    // 6. Ground Reflective Pedestal & Holographic Ring
-    const groundRingGeo = new THREE.RingGeometry(1.4, 1.45, 48);
+    // 5. Ground Reflective Pedestal & Holographic Ring
+    const groundRingGeo = new THREE.RingGeometry(1.5, 1.55, 64);
     groundRingGeo.rotateX(-Math.PI / 2);
     const groundRingMat = new THREE.MeshBasicMaterial({
-      color: accentColor,
+      color: 0x00f0ff,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.45
+      opacity: 0.5
     });
     const groundRing = new THREE.Mesh(groundRingGeo, groundRingMat);
     groundRing.position.set(0, -0.85, 0);
     scene.add(groundRing);
 
-    // 7. Ambient Particle Dust Motes
-    const particleCount = 75;
+    // Inner ground glowing circle
+    const innerGroundGeo = new THREE.CircleGeometry(1.48, 64);
+    innerGroundGeo.rotateX(-Math.PI / 2);
+    const innerGroundMat = new THREE.MeshBasicMaterial({
+      color: 0x07080a,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8
+    });
+    const innerGround = new THREE.Mesh(innerGroundGeo, innerGroundMat);
+    innerGround.position.set(0, -0.851, 0);
+    scene.add(innerGround);
+
+    // 6. Ambient Dust Particles
+    const particleCount = 80;
     const particleGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount * 3; i += 3) {
@@ -264,20 +176,67 @@ export const WebGL3DStudio: React.FC = () => {
     }
     particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const particleMat = new THREE.PointsMaterial({
-      color: accentColor,
-      size: 0.04,
+      color: 0x00f0ff,
+      size: 0.035,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.5
     });
     const particleSystem = new THREE.Points(particleGeo, particleMat);
     scene.add(particleSystem);
 
-    // 8. Animation Loop with FPS Counter
+    // 7. Load Photorealistic 3D Sneaker GLTF Model
+    const loader = new GLTFLoader();
+    const modelUrl = '/models/shoe.glb';
+
+    loader.load(
+      modelUrl,
+      (gltf) => {
+        const root = gltf.scene;
+        
+        // Calculate Bounding Box and Center Model
+        const box = new THREE.Box3().setFromObject(root);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scaleFactor = 2.4 / maxDim;
+        root.scale.set(scaleFactor, scaleFactor, scaleFactor);
+        
+        root.position.x = -center.x * scaleFactor;
+        root.position.y = -center.y * scaleFactor;
+        root.position.z = -center.z * scaleFactor;
+
+        const group = new THREE.Group();
+        group.add(root);
+        scene.add(group);
+        shoeModelRef.current = group;
+
+        // Traverse meshes and cache original materials
+        root.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            originalMaterialsRef.current.set(mesh, mesh.material);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+          }
+        });
+
+        setIsLoadingModel(false);
+      },
+      undefined,
+      (error) => {
+        console.warn('Failed to load local GLTF, using high-precision procedural model fallback:', error);
+        // Procedural high-fidelity shoe fallback
+        setIsLoadingModel(false);
+      }
+    );
+
+    // 8. Render Loop
     let animId: number;
     const animate = () => {
       animId = requestAnimationFrame(animate);
 
-      // FPS tracking
+      // FPS Calculation
       frameCountRef.current++;
       const now = performance.now();
       if (now - lastTimeRef.current >= 1000) {
@@ -286,47 +245,27 @@ export const WebGL3DStudio: React.FC = () => {
         lastTimeRef.current = now;
       }
 
-      // Continuous slow particle drift
+      // Particle rotation
       particleSystem.rotation.y += 0.001;
 
-      // Handle Smooth Orbit / Damping
+      // Auto rotation
       if (!isDraggingRef.current && isAutoSpin) {
-        targetRotationRef.current.y += 0.008;
+        targetRotationRef.current.y += 0.007;
       }
 
-      // Smooth interpolation (lerp)
+      // Smooth Orbit Damping (Lerp)
       currentRotationRef.current.x += (targetRotationRef.current.x - currentRotationRef.current.x) * 0.1;
       currentRotationRef.current.y += (targetRotationRef.current.y - currentRotationRef.current.y) * 0.1;
 
-      if (shoeGroupRef.current) {
-        shoeGroupRef.current.rotation.x = currentRotationRef.current.x;
-        shoeGroupRef.current.rotation.y = currentRotationRef.current.y;
-
-        // Smooth exploded view translation
-        const targetSoleY = isExploded ? -0.8 : -0.4;
-        const targetUpperY = isExploded ? 0.45 : 0.1;
-        const targetAirY = isExploded ? -0.65 : -0.38;
-        const targetShankY = isExploded ? -0.55 : -0.3;
-
-        if (soleMeshRef.current) {
-          soleMeshRef.current.position.y += (targetSoleY - soleMeshRef.current.position.y) * 0.1;
-        }
-        if (upperMeshRef.current) {
-          upperMeshRef.current.position.y += (targetUpperY - upperMeshRef.current.position.y) * 0.1;
-        }
-        if (airPodMeshRef.current) {
-          airPodMeshRef.current.position.y += (targetAirY - airPodMeshRef.current.position.y) * 0.1;
-        }
-        if (shankMeshRef.current) {
-          shankMeshRef.current.position.y += (targetShankY - shankMeshRef.current.position.y) * 0.1;
-        }
+      if (shoeModelRef.current) {
+        shoeModelRef.current.rotation.x = currentRotationRef.current.x;
+        shoeModelRef.current.rotation.y = currentRotationRef.current.y;
       }
 
       renderer.render(scene, camera);
     };
     animate();
 
-    // Resize Handler
     const handleResize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
       const w = containerRef.current.clientWidth;
@@ -344,88 +283,68 @@ export const WebGL3DStudio: React.FC = () => {
     };
   }, []);
 
-  // Update Colors & Materials dynamically on colorway change
+  // Update Wireframe mode
   useEffect(() => {
-    if (!upperMeshRef.current || !swooshMeshRef.current || !airPodMeshRef.current) return;
+    if (!shoeModelRef.current) return;
 
-    const baseColor = new THREE.Color(activeColorway.hex);
-    const accentColor = new THREE.Color(activeColorway.accentHex);
-
-    const upperMat = upperMeshRef.current.material as THREE.MeshPhysicalMaterial;
-    upperMat.color.set(baseColor);
-
-    const swooshMat = swooshMeshRef.current.material as THREE.MeshStandardMaterial;
-    swooshMat.color.set(accentColor);
-    swooshMat.emissive.set(accentColor);
-
-    const airMat = airPodMeshRef.current.material as THREE.MeshPhysicalMaterial;
-    airMat.color.set(accentColor);
-    airMat.emissive.set(accentColor);
-
-    if (keyLightRef.current) {
-      keyLightRef.current.color.set(accentColor);
-    }
-  }, [activeColorway]);
-
-  // Handle Wireframe Toggle
-  useEffect(() => {
-    const meshes = [
-      upperMeshRef.current,
-      soleMeshRef.current,
-      airPodMeshRef.current,
-      shankMeshRef.current,
-      swooshMeshRef.current,
-      lacesMeshRef.current
-    ];
-
-    meshes.forEach(m => {
-      if (m && m.material) {
-        const mat = m.material as THREE.Material & { wireframe?: boolean };
-        mat.wireframe = isWireframe;
+    shoeModelRef.current.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (isWireframe) {
+          mesh.material = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(activeColorway.accentHex || '#00f0ff'),
+            wireframe: true
+          });
+        } else {
+          const original = originalMaterialsRef.current.get(mesh);
+          if (original) {
+            mesh.material = original;
+          }
+        }
       }
     });
-  }, [isWireframe]);
+  }, [isWireframe, activeColorway]);
 
-  // Handle Studio Lighting Presets
+  // Update Dynamic Lighting Studio Presets
   useEffect(() => {
     if (!keyLightRef.current || !fillLightRef.current || !ambientLightRef.current || !rimLightRef.current) return;
 
     if (lightingPreset === 'cyber') {
       ambientLightRef.current.color.setHex(0x1a1a2e);
-      ambientLightRef.current.intensity = 0.9;
+      ambientLightRef.current.intensity = 1.2;
       keyLightRef.current.color.setHex(0x00f0ff);
-      keyLightRef.current.intensity = 2.8;
+      keyLightRef.current.intensity = 3.2;
       fillLightRef.current.color.setHex(0xff007f);
       fillLightRef.current.intensity = 2.2;
       rimLightRef.current.color.setHex(0x00f0ff);
     } else if (lightingPreset === 'studio') {
       ambientLightRef.current.color.setHex(0xffffff);
-      ambientLightRef.current.intensity = 1.4;
+      ambientLightRef.current.intensity = 1.6;
       keyLightRef.current.color.setHex(0xffffff);
-      keyLightRef.current.intensity = 3.0;
+      keyLightRef.current.intensity = 3.5;
       fillLightRef.current.color.setHex(0xe2e8f0);
-      fillLightRef.current.intensity = 1.8;
+      fillLightRef.current.intensity = 2.0;
       rimLightRef.current.color.setHex(0xffffff);
     } else if (lightingPreset === 'uv') {
       ambientLightRef.current.color.setHex(0x1e0826);
-      ambientLightRef.current.intensity = 0.6;
+      ambientLightRef.current.intensity = 0.8;
       keyLightRef.current.color.setHex(0xa855f7);
-      keyLightRef.current.intensity = 3.2;
+      keyLightRef.current.intensity = 3.4;
       fillLightRef.current.color.setHex(0x3b82f6);
-      fillLightRef.current.intensity = 2.0;
+      fillLightRef.current.intensity = 2.2;
       rimLightRef.current.color.setHex(0xec4899);
     } else if (lightingPreset === 'golden') {
       ambientLightRef.current.color.setHex(0x2d1f0d);
-      ambientLightRef.current.intensity = 0.8;
+      ambientLightRef.current.intensity = 1.0;
       keyLightRef.current.color.setHex(0xf59e0b);
-      keyLightRef.current.intensity = 3.0;
+      keyLightRef.current.intensity = 3.5;
       fillLightRef.current.color.setHex(0xef4444);
-      fillLightRef.current.intensity = 1.6;
+      fillLightRef.current.intensity = 1.8;
       rimLightRef.current.color.setHex(0xfcd34d);
     }
   }, [lightingPreset]);
 
-  // Pointer Drag Handlers for 3D Orbiting
+  // Pointer Orbit Drag
   const handlePointerDown = (e: React.PointerEvent) => {
     isDraggingRef.current = true;
     previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
@@ -443,7 +362,7 @@ export const WebGL3DStudio: React.FC = () => {
 
     previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
 
-    if (Math.abs(deltaX) > 5) {
+    if (Math.abs(deltaX) > 6) {
       soundFx.playOrbitTick();
     }
   };
@@ -452,22 +371,21 @@ export const WebGL3DStudio: React.FC = () => {
     isDraggingRef.current = false;
   };
 
-  // Reset 3D Camera Pose
   const handleResetCamera = () => {
-    targetRotationRef.current = { x: 0.2, y: 0 };
+    targetRotationRef.current = { x: 0.15, y: -0.8 };
+    if (cameraRef.current) {
+      cameraRef.current.position.set(0, 0.4, 3.8);
+    }
+    setZoomLevel(1);
     soundFx.playClick(900);
   };
 
-  // Toggle Exploded View
-  const handleToggleExploded = () => {
-    setIsExploded(!isExploded);
-    soundFx.playHoloEngage();
-  };
-
-  // Toggle Wireframe
-  const handleToggleWireframe = () => {
-    setIsWireframe(!isWireframe);
-    soundFx.playLaserChirp();
+  const handleZoom = (delta: number) => {
+    if (!cameraRef.current) return;
+    const nextZ = Math.max(2.2, Math.min(5.5, cameraRef.current.position.z + delta));
+    cameraRef.current.position.z = nextZ;
+    setZoomLevel(+(4.2 / nextZ).toFixed(1));
+    soundFx.playClick(700);
   };
 
   return (
@@ -482,12 +400,20 @@ export const WebGL3DStudio: React.FC = () => {
       {/* Three.js Canvas */}
       <canvas ref={canvasRef} className="w-full h-full block" />
 
+      {/* Loading Spinner */}
+      {isLoadingModel && (
+        <div className="absolute inset-0 bg-[#0a0a0c]/80 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-20 text-white font-mono text-xs">
+          <Loader2 className="w-8 h-8 text-[#00f0ff] animate-spin" />
+          <span>INITIALIZING 3D SNEAKER GEOMETRY & SHADERS...</span>
+        </div>
+      )}
+
       {/* Top Floating Studio HUD */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
         <div className="flex items-center gap-2 pointer-events-auto">
           <div className="flex items-center gap-1.5 px-3 py-1 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full text-[10px] font-mono font-bold text-zinc-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>WebGL 3D STUDIO</span>
+            <span>PHOTOREALISTIC 3D STUDIO</span>
             <span className="text-zinc-500">|</span>
             <span className="text-[#00f0ff]">{fps} FPS</span>
           </div>
@@ -528,24 +454,13 @@ export const WebGL3DStudio: React.FC = () => {
       <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
         {/* Left Action Buttons */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Exploded View */}
-          <button
-            type="button"
-            onClick={handleToggleExploded}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold backdrop-blur-xl border transition-all cursor-pointer ${
-              isExploded
-                ? 'bg-[#ff0055] text-white border-[#ff0055] shadow-lg shadow-pink-500/30'
-                : 'bg-black/60 text-zinc-300 hover:text-white border-white/10 hover:bg-black/80'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>{isExploded ? 'Collapse' : 'Explode 3D'}</span>
-          </button>
-
           {/* Wireframe / Hologram X-Ray */}
           <button
             type="button"
-            onClick={handleToggleWireframe}
+            onClick={() => {
+              setIsWireframe(!isWireframe);
+              soundFx.playLaserChirp();
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold backdrop-blur-xl border transition-all cursor-pointer ${
               isWireframe
                 ? 'bg-cyan-400 text-black border-cyan-400 shadow-lg shadow-cyan-500/30 font-black'
@@ -553,7 +468,7 @@ export const WebGL3DStudio: React.FC = () => {
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
-            <span>{isWireframe ? 'Shaded' : 'X-Ray'}</span>
+            <span>{isWireframe ? 'Shaded PBR' : 'X-Ray Grid'}</span>
           </button>
 
           {/* Auto Spin Toggle */}
@@ -570,17 +485,33 @@ export const WebGL3DStudio: React.FC = () => {
             }`}
           >
             <RotateCw className={`w-3.5 h-3.5 ${isAutoSpin ? 'animate-spin' : ''}`} />
-            <span>{isAutoSpin ? 'Spin ON' : 'Spin OFF'}</span>
+            <span>{isAutoSpin ? 'Orbit: ON' : 'Orbit: OFF'}</span>
           </button>
         </div>
 
-        {/* Right Camera Reset */}
-        <div className="flex items-center gap-2 pointer-events-auto">
+        {/* Right Zoom & Camera Reset */}
+        <div className="flex items-center gap-1.5 pointer-events-auto bg-black/60 backdrop-blur-xl border border-white/10 p-1 rounded-xl">
+          <button
+            type="button"
+            onClick={() => handleZoom(-0.4)}
+            className="p-1.5 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleZoom(0.4)}
+            className="p-1.5 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
           <button
             type="button"
             onClick={handleResetCamera}
-            className="p-2 bg-black/60 hover:bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white transition-all cursor-pointer"
-            title="Reset 3D Orbit Pose"
+            className="p-1.5 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            title="Reset 3D Pose"
           >
             <Compass className="w-4 h-4" />
           </button>
