@@ -6,11 +6,13 @@ import {
   ShieldCheck, 
   ShoppingBag, 
   Zap, 
-  Layers, 
   ChevronLeft, 
   ChevronRight,
-  Maximize2
+  Star,
+  MessageSquare
 } from 'lucide-react';
+import { MaterialSelector } from './MaterialSelector';
+import { CustomerReviewsModal } from '../reviews/CustomerReviewsModal';
 
 export const Product3DViewer: React.FC = () => {
   const { 
@@ -25,7 +27,7 @@ export const Product3DViewer: React.FC = () => {
   } = useVault();
 
   const [selectedSize, setSelectedSize] = useState<number>(activeProduct.sizes[0] || 9);
-  const [activeTab, setActiveTab] = useState<'overview' | 'specs'>('overview');
+  const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
 
   const anglesCount = activeColorway.angleImages.length;
   const currentImage = activeColorway.angleImages[activeAngleIndex] || activeColorway.angleImages[0];
@@ -40,16 +42,16 @@ export const Product3DViewer: React.FC = () => {
 
   return (
     <section id="showcase" className="pt-28 pb-12 px-4 sm:px-12 max-w-7xl mx-auto select-none">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left: 3D Interactive Viewer Canvas (7 Cols) */}
         <div className="lg:col-span-7 bg-[#111216] border border-[#262833] rounded-3xl p-6 sm:p-10 shadow-2xl relative flex flex-col justify-between overflow-hidden group">
           {/* Ambient Glow Lighting based on selected colorway */}
           <div 
-            className="absolute -top-32 -left-32 w-96 h-96 rounded-full blur-[140px] opacity-25 pointer-events-none transition-all duration-700"
+            className="absolute -top-32 -left-32 w-96 h-96 rounded-full blur-[140px] opacity-30 pointer-events-none transition-all duration-700"
             style={{ backgroundColor: activeColorway.hex }}
           />
           <div 
-            className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full blur-[140px] opacity-25 pointer-events-none transition-all duration-700"
+            className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full blur-[140px] opacity-30 pointer-events-none transition-all duration-700"
             style={{ backgroundColor: activeColorway.accentHex }}
           />
 
@@ -130,11 +132,22 @@ export const Product3DViewer: React.FC = () => {
 
         {/* Right: Product Details, Colorway Customizer & Cart Controls (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Brand & Title */}
+          {/* Brand, Title & Reviews trigger */}
           <div className="space-y-2">
-            <span className="text-xs font-mono font-bold tracking-widest text-zinc-400 uppercase">
-              {activeProduct.brand} • {activeProduct.category}
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold tracking-widest text-zinc-400 uppercase">
+                {activeProduct.brand} • {activeProduct.category}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsReviewsModalOpen(true)}
+                className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-mono cursor-pointer"
+              >
+                <Star className="w-3.5 h-3.5 fill-current" />
+                <span>{activeProduct.rating} ({activeProduct.reviewsCount} reviews)</span>
+              </button>
+            </div>
+
             <h1 className="text-3xl sm:text-4xl font-black text-white font-display tracking-tight">
               {activeProduct.name}
             </h1>
@@ -148,7 +161,7 @@ export const Product3DViewer: React.FC = () => {
                 </span>
               )}
               <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                In Stock & Ready to Ship
+                In Stock & Verified
               </span>
             </div>
           </div>
@@ -158,8 +171,11 @@ export const Product3DViewer: React.FC = () => {
             {activeProduct.description}
           </p>
 
+          {/* Material Texture Customizer */}
+          <MaterialSelector />
+
           {/* Colorway Switcher */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-1">
             <div className="flex justify-between text-xs">
               <span className="font-bold text-zinc-300">Selected Colorway:</span>
               <span className="font-mono text-[#00f0ff] font-bold">{activeColorway.name}</span>
@@ -183,7 +199,7 @@ export const Product3DViewer: React.FC = () => {
           </div>
 
           {/* Size Selector */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-1">
             <div className="flex justify-between text-xs">
               <span className="font-bold text-zinc-300">Select US Size:</span>
               <span className="text-zinc-400 font-mono">True to size fit</span>
@@ -207,7 +223,7 @@ export const Product3DViewer: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-4 pt-4">
+          <div className="flex items-center gap-4 pt-2">
             <button
               type="button"
               onClick={() => addToCart(activeProduct, activeColorway, selectedSize)}
@@ -217,20 +233,14 @@ export const Product3DViewer: React.FC = () => {
               <span>Add to Cart</span>
             </button>
           </div>
-
-          {/* Quality Badges */}
-          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-[#262833]/60 text-xs text-zinc-400 font-mono">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#00f0ff]" />
-              <span>100% Authenticity Verified</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[#ff0055]" />
-              <span>Express Next-Day Delivery</span>
-            </div>
-          </div>
         </div>
       </div>
+
+      {/* Reviews Modal */}
+      <CustomerReviewsModal
+        isOpen={isReviewsModalOpen}
+        onClose={() => setIsReviewsModalOpen(false)}
+      />
     </section>
   );
 };
